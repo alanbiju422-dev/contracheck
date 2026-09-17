@@ -401,7 +401,7 @@ with tab4:
                         c1, c2, c3 = st.columns(3)
                         c1.metric("Frames Analyzed", result["total_frames_analyzed"])
                         c2.metric("Fake Frame Ratio", f"{result['fake_frame_ratio'] * 100:.1f}%")
-                        c3.metric("Avg Fake Confidence", f"{result['average_fake_score'] * 100:.1f}%")
+                        c3.metric("Model Confidence", f"{result.get('confidence', result.get('average_fake_score', 0)) * 100:.1f}%")
                         
                         st.write("")
                         c4, c5, _ = st.columns(3)

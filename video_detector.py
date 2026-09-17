@@ -74,20 +74,22 @@ def analyze_video(video_bytes) -> dict:
         for f in frames_to_analyze:
             prediction = pipe(f["image"])
             
-            top_label = prediction[0]['label'].lower()
+            # Explicitly find highest score rather than relying on list position
+            best_pred = max(prediction, key=lambda x: x['score'])
+            top_label = best_pred['label'].lower()
             
-            is_fake = False
+            is_fake = "fake" in top_label
+            
             fake_score = 0.0
+            real_score = 0.0
             
             for p in prediction:
                 label_name = p['label'].lower()
                 if "fake" in label_name:
                     fake_score = p['score']
-                    break
+                elif "real" in label_name:
+                    real_score = p['score']
                     
-            if "fake" in top_label:
-                is_fake = True
-                
             if is_fake:
                 fake_count += 1
                 if len(suspicious_frames) < 3:
@@ -101,14 +103,22 @@ def analyze_video(video_bytes) -> dict:
                 "frame_number": f["frame_number"],
                 "timestamp": f["timestamp"],
                 "is_fake": is_fake,
-                "fake_score": fake_score
+                "fake_score": fake_score,
+                "real_score": real_score
             })
             
         total_analyzed = len(results)
         fake_ratio = fake_count / total_analyzed
         avg_fake_score = total_fake_score / total_analyzed
         
-        prediction_text = "Likely AI-generated / manipulated" if fake_ratio >= FAKE_FRAME_RATIO_THRESHOLD else "Likely Real"
+        if fake_ratio >= FAKE_FRAME_RATIO_THRESHOLD:
+            prediction_text = "Likely AI-generated / manipulated"
+            confidence = avg_fake_score
+        else:
+            prediction_text = "Likely Real"
+            # If it's classified as real, confidence should reflect the average real score
+            # Since real_score = 1 - fake_score, avg_real = 1 - avg_fake_score
+            confidence = 1.0 - avg_fake_score
         
         return {
             "total_frames_analyzed": total_analyzed,
@@ -117,6 +127,7 @@ def analyze_video(video_bytes) -> dict:
             "fake_frame_ratio": fake_ratio,
             "average_fake_score": avg_fake_score,
             "prediction": prediction_text,
+            "confidence": confidence,
             "suspicious_frames": suspicious_frames
         }
         
