@@ -376,7 +376,9 @@ with tab4:
     )
     
     if uploaded_video is not None:
-        st.video(uploaded_video)
+        video_col1, video_col2, video_col3 = st.columns([1, 2, 1])
+        with video_col2:
+            st.video(uploaded_video)
         
         st.write("") # Spacer
         if st.button("Analyze Video"):
